@@ -59,25 +59,25 @@ async function run(): Promise<void> {
 
       const charactersLimit = 65535
       let title = core.getInput('title')
-      if (title.length > charactersLimit) {
+      if (Buffer.byteLength(title, 'utf-8') > charactersLimit) {
         core.warning(
           `The 'title' will be truncated because the character limit (${charactersLimit}) exceeded.`
         )
-        title = title.substring(0, charactersLimit)
+        title = Buffer.from(title).toString('utf-8', 0, charactersLimit - 3) + '...'
       }
       let reportSummary = report.reportSummary
-      if (reportSummary.length > charactersLimit) {
+      if (Buffer.byteLength(reportSummary, 'utf-8') > charactersLimit) {
         core.warning(
           `The 'summary' will be truncated because the character limit (${charactersLimit}) exceeded.`
         )
-        reportSummary = reportSummary.substring(0, charactersLimit)
+        reportSummary = Buffer.from(reportSummary).toString('utf-8', 0, charactersLimit - 3) + '...'
       }
       let reportDetail = report.reportDetail
-      if (reportDetail.length > charactersLimit) {
+      if (Buffer.byteLength(reportDetail, 'utf-8') > charactersLimit) {
         core.warning(
           `The 'text' will be truncated because the character limit (${charactersLimit}) exceeded.`
         )
-        reportDetail = reportDetail.substring(0, charactersLimit)
+        reportDetail = Buffer.from(reportDetail).toString('utf-8', 0, charactersLimit - 3) + '...'
       }
 
       if (report.annotations.length > 50) {
@@ -166,3 +166,5 @@ async function mergeResultBundle(
 
   await exec.exec('xcrun', args, options)
 }
+
+
