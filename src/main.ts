@@ -57,27 +57,43 @@ async function run(): Promise<void> {
       const pr = github.context.payload.pull_request
       const sha = (pr && pr.head.sha) || github.context.sha
 
-      const charactersLimit = 65535
+      const bytesLimit = 65535
       let title = core.getInput('title')
-      if (title.length > charactersLimit) {
-        core.warning(
-          `The 'title' will be truncated because the character limit (${charactersLimit}) exceeded.`
-        )
-        title = title.substring(0, charactersLimit)
-      }
       let reportSummary = report.reportSummary
-      if (reportSummary.length > charactersLimit) {
-        core.warning(
-          `The 'summary' will be truncated because the character limit (${charactersLimit}) exceeded.`
-        )
-        reportSummary = reportSummary.substring(0, charactersLimit)
-      }
       let reportDetail = report.reportDetail
-      if (reportDetail.length > charactersLimit) {
-        core.warning(
-          `The 'text' will be truncated because the character limit (${charactersLimit}) exceeded.`
-        )
-        reportDetail = reportDetail.substring(0, charactersLimit)
+
+      const truncateToBytes = (str: string, maxSize: number): string => {
+        let bytes = 0
+        let i = 0
+
+        // Iterate through the characters of the string until reaching the byte size limit
+        for (; i < str.length && bytes <= maxSize; i++) {
+          const charCode = str.charCodeAt(i);
+
+          // Depending on the Unicode code point of the character, add the corresponding byte size
+          if (charCode < 128) bytes += 1; // 1 byte for standard ASCII characters
+          else if (charCode < 2048) bytes += 2; // 2 bytes for characters in the range 128-2047
+          else if (charCode < 65536) bytes += 3; // 3 bytes for characters in the range 2048-65535
+          else bytes += 4; // 4 bytes for characters in the range 65536 and above
+        }
+
+        // Return the truncated string, cutting it at the position where the byte size limit was reached
+        return str.substring(0, i - 1);
+      }
+
+      if (Buffer.from(title).length > bytesLimit) {
+        core.warning(`The 'title' will be truncated because the byte size limit (${bytesLimit}) exceeded.`)
+        title = truncateToBytes(title, bytesLimit)
+      }
+
+      if (Buffer.from(report.reportSummary).length > bytesLimit) {
+        core.warning(`The 'summary' will be truncated because the byte size limit (${bytesLimit}) exceeded.`)
+        reportSummary = truncateToBytes(report.reportSummary, bytesLimit)
+      }
+
+      if (Buffer.from(report.reportDetail).length > bytesLimit) {
+        core.warning(`The 'text' will be truncated because the byte size limit (${bytesLimit}) exceeded.`)
+        reportDetail = truncateToBytes(report.reportDetail, bytesLimit)
       }
 
       if (report.annotations.length > 50) {
